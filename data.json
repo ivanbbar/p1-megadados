@@ -1,0 +1,71 @@
+{
+    "inventory": [
+        {
+            "inventory_id": 1
+        },
+        {
+            "inventory_id": 2
+        },
+        {
+            "inventory_id": 3
+        }
+    ],
+    "product": [
+        {
+            "product_id": 1,
+            "name": "Guarana Jesus",
+            "price": 5.0,
+            "description": "Refri maranhense com gosto de tuti fruti"
+        },
+        {
+            "product_id": 2,
+            "name": "carambola",
+            "price": 20.0,
+            "description": "Fruta que sofreu hiperinflacao"
+        },
+        {
+            "product_id": 3,
+            "name": "rapadura",
+            "price": 1.5,
+            "description": "É doce mas não é mole"
+        },
+        {
+            "product_id": 4,
+            "name": "bolo de rolo",
+            "price": 32.0,
+            "description": "Não é a mesma coisa que rocambole"
+        }
+    ],
+    "inventory_product": [
+        {
+            "fk_inventory_id": 1,
+            "fk_product_id": 1,
+            "quantity": 9
+        },
+        {
+            "fk_inventory_id": 1,
+            "fk_product_id": 2,
+            "quantity": 13
+        },
+        {
+            "fk_inventory_id": 2,
+            "fk_product_id": 1,
+            "quantity": 3
+        },
+        {
+            "fk_inventory_id": 2,
+            "fk_product_id": 3,
+            "quantity": 5
+        },
+        {
+            "fk_inventory_id": 2,
+            "fk_product_id": 4,
+            "quantity": 12
+        },
+        {
+            "fk_inventory_id": 3,
+            "fk_product_id": 2,
+            "quantity": 13
+        }
+    ]
+}
