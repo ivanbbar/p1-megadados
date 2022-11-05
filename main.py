@@ -1,22 +1,22 @@
-from fastapi import FastAPI, Query, Path, Body, HTTPException
+from fastapi import FastAPI, Path, Body, HTTPException
 from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from pydantic import BaseModel, Field
+from crud import *
 
-from utils import *
+crud_products = CrudProducts()
+crud_inventory_products = CrudInventoryProducts()
 
 app = FastAPI()
 
 ### CLASSES
 
 class ProductsInterface(BaseModel):
-    product_id: Optional[int] = Field(None, ge=1)
     name: str = Field(..., max_length=45)
     price: float
     description: Optional[str] = Field(None, max_length=150)
 
 class ProductsInterfaceSecondary(BaseModel):
-    product_id: Optional[int] = Field(None, ge=1)
     name: Optional[str] = Field(None, max_length=45)
     price: Optional[float]
     description: Optional[str] = Field(None, max_length=150)
@@ -31,7 +31,7 @@ class InventoryProductInterface(BaseModel):
 #get all products
 @app.get("/products/", tags=["Product"])
 async def get_all_products():
-    return {"products": read_data("product")}
+    return {"products": crud_products.get_all()}
 
 #get product
 @app.get("/products/{product_id}", tags=["Product"])
@@ -39,29 +39,21 @@ async def get_product(
     *,
     product_id: int = Path(..., title="The product ID", ge=1)):
 
-    if check_id("product", "product_id", product_id):
-        return {"product": list(
-            filter(lambda x: x["product_id"] == product_id, read_data("product")))[0]}
-    else:
+    try:
+        return {"product": crud_products.get(product_id)}
+    except:
         raise HTTPException(status_code=404, detail="Product not found")
 
 # Create product
 @app.post("/products/", tags=["Product"])
 async def create_product(product: ProductsInterface = Body(...)):
 
-    idmax = 0
-    for data in read_data("product"):
-        if data["product_id"] > idmax:
-            idmax = data["product_id"]
-    
-    product.product_id = idmax + 1
+    try:
+        crud_products.create(jsonable_encoder(product))
+        return {"message": "success"}
 
-    with open('data.json', 'r+', encoding='utf-8') as f:
-        file = json.load(f)
-        file["product"].append(jsonable_encoder(product))  
-        json.dump(file, f.truncate(0).seek(0), indent=4)
-
-    return {"message": "success"}
+    except:
+        raise HTTPException(status_code=400, detail="Error creating product")
 
 # Update product
 @app.put("/products/{product_id}", tags=["Product"])
@@ -70,22 +62,16 @@ async def update_product(
     product_id: int = Path(..., title="The product ID", ge=1),
     product: ProductsInterfaceSecondary = Body(...)):
 
-    if check_id("product", "product_id", product_id):
-        update_element = list(
-            filter(lambda x: x["product_id"] == product_id, read_data("product")))[0]
-
-        for key, value in jsonable_encoder(product).items():
-            if value != None:
-                jsonable_encoder(update_element)[key] = value
-        update_data("product", ["product_id"], [product_id], jsonable_encoder(update_element))
+    try:
+        crud_products.update(product_id, jsonable_encoder(product))
         return {"message": "success"}
-    else:
+    except:
         raise HTTPException(status_code=404, detail="Product not found")
 
 # get all inventories
-@app.get("/inventory/", tags=["Inventory"])
+@app.get("/inventory/", tags=["Inventory Product"])
 async def get_all_inventories():
-    return {"inventory": read_data("inventory")}
+    return {"inventory_product": crud_inventory_products.get_all()}
 
 #get inventory
 @app.get("/inventory/{inventory_id}", tags=["Inventory Product"])
@@ -93,10 +79,9 @@ async def get_inventory_products(
     *,
     inventory_id: int = Path(..., title="The inventory ID", ge=1)):
 
-    if check_id("inventory", "inventory_id", inventory_id):
-        return {"inventory_product": list(
-            filter(lambda x: x["fk_inventory_id"] == inventory_id, read_data("inventory_product")))}
-    else:
+    try:
+        return {"inventory_product": crud_inventory_products.get(inventory_id)}
+    except:
         raise HTTPException(status_code=404, detail="Inventory not found")
 
 # update product in inventory
@@ -107,16 +92,12 @@ async def update_inventory_product(
     product_id: int = Path(..., title="The product ID", ge=1),
     inventory: InventoryProductInterface = Body(...)):
 
-    if check_id("inventory", "inventory_id", inventory_id):
-        for element in list(filter(lambda x: x["fk_inventory_id"] == inventory_id, read_data("inventory_product"))):
-            if element["fk_product_id"] == product_id:
-                for key, value in jsonable_encoder(inventory).items():
-                    if value != None:
-                        element[key] = value
-                        update_data("inventory_product", ["fk_inventory_id", "fk_product_id"], [inventory_id, product_id], element)
+    try:
+        crud_inventory_products.update(inventory_id, product_id, jsonable_encoder(inventory)["quantity"])
         return {"message": "success"}
-    else:
-        raise HTTPException(status_code=404, detail="Inventory not found")
+    except:
+        raise HTTPException(
+            status_code=404, detail="Error in updating products in inventory")
 
 # delete product from inventory
 @app.delete("/inventory/{inventory_id}/{product_id}", tags=["Inventory Product"])
@@ -125,9 +106,9 @@ async def delete_inventory_product(
     inventory_id: int = Path(..., title="The inventory ID", ge=1),
     product_id: int = Path(..., title="The product ID", ge=1)):
 
-    if check_id("inventory", "inventory_id", inventory_id):
-        delete_data("inventory_product", ["fk_inventory_id", "fk_product_id"], [
-                    inventory_id, product_id])
+    try:
+        crud_inventory_products.delete(inventory_id, product_id)
         return {"message": "success"}
-    else:
-        raise HTTPException(status_code=404, detail="Inventory not found")
+    except:
+        raise HTTPException(
+            status_code=404, detail="Error in deleting product from inventory")
